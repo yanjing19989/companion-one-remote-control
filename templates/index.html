@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光栅文件上传</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .thumbnail-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .thumbnail {
+            cursor: pointer;
+            width: 256px;
+            height: auto;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .thumbnail:hover {
+            border-color: #007bff;
+            transform: scale(1.03);
+        }
+        #imageModal .modal-body img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">文件上传</h1>
+        <div class="form-group text-center mt-4">
+            <div class="row">
+                <div class="col">
+                    <form id="leftForm" onsubmit="submitForm(event, '/left')">
+                        <button type="submit" class="btn btn-success">上一个</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <form id="startForm" onsubmit="submitForm(event, '/startppt')">
+                        <button type="submit" class="btn btn-success">开始轮播</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <form id="rightForm" onsubmit="submitForm(event, '/right')">
+                        <button type="submit" class="btn btn-success">下一个</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <form id="uploadForm" class="mt-4">
+            <div class="form-group">
+                <input type="file" id="file" name="file" onchange="previewImage(event)">
+            </div>
+
+            <div class="form-group text-center"><button type="submit" class="btn btn-primary">上传</button></div>
+            <div class="form-group">
+                <img id="preview" src="#" alt="图片预览" style="display: none; max-width: 100%; height: auto;">
+            </div>
+        </form>
+        
+        <!-- 缩略图预览区域 -->
+        <h3 class="mt-5">图片预览</h3>
+        <div class="thumbnail-container" id="thumbnailGallery">
+            <!-- 缩略图将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">图片预览</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <img id="modalImage" src="" alt="图片预览" class="img-fluid">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="applyImage">应用</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        let currentImageFilename = '';
+
+        // 页面加载完成后获取并显示所有图片
+        $(document).ready(function() {
+            loadImages();
+            
+            // 上传表单提交处理
+            $('#uploadForm').on('submit', function(event) {
+                event.preventDefault();
+                var formData = new FormData(this);
+                $.ajax({
+                    url: '/upload',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        if (response.success) {
+                            alert('文件上传并处理成功');
+                            // 重新加载图片列表
+                            loadImages();
+                        } else {
+                            alert('文件上传失败: ' + response.message);
+                        }
+                    }
+                });
+            });
+            
+            // 应用按钮点击事件
+            $('#applyImage').on('click', function() {
+                if (currentImageFilename) {
+                    $.ajax({
+                        url: `/show_image/${currentImageFilename}`,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                $('#imageModal').modal('hide');
+                                alert('图片已成功应用到显示设备');
+                            } else {
+                                alert('应用失败: ' + response.message);
+                            }
+                        },
+                        error: function() {
+                            alert('应用失败，请检查网络连接');
+                        }
+                    });
+                }
+            });
+        });
+
+        // 加载所有图片
+        function loadImages() {
+            $.ajax({
+                url: '/get_images',
+                type: 'GET',
+                success: function(images) {
+                    const gallery = $('#thumbnailGallery');
+                    gallery.empty();
+                    
+                    images.forEach(function(image) {
+                        const thumbElement = $(`<img src="${image.thumbnail_url}" 
+                            alt="${image.name}" 
+                            class="thumbnail" 
+                            data-image-url="${image.image_url}"
+                            data-image-name="${image.name}">`);
+                        
+                        thumbElement.on('click', function() {
+                            $('#modalImage').attr('src', image.image_url);
+                            $('#imageModalLabel').text(image.name);
+                            currentImageFilename = image.name;
+                            $('#imageModal').modal('show');
+                        });
+                        
+                        gallery.append(thumbElement);
+                    });
+                },
+                error: function() {
+                    alert('获取图片列表失败');
+                }
+            });
+        }
+
+        function submitForm(event, url) {
+            event.preventDefault();
+            fetch(url, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    console.log('Request successful');
+                } else {
+                    console.log('Request failed');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function previewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function(){
+                var output = document.getElementById('preview');
+                output.src = reader.result;
+                output.style.display = 'block';
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    </script>
+</body>
+</html>
