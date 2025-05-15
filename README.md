@@ -14,6 +14,8 @@ A web-based application for uploading, managing, and displaying images on a conn
 - Display selected images on connected screen
 - Image slideshow mode with navigation controls
 - Delete unwanted images
+- Automatically switch images
+- Select a subfolders and only use images within that folder
 - Remote control through web interface
 
 ### Requirements
@@ -37,15 +39,16 @@ A web-based application for uploading, managing, and displaying images on a conn
    pip install flask pillow
    ```
 
-3. Install FBI on your Linux device:
+3. Install FBI on your Linux device and test display functionality:
    ```
    sudo apt-get install fbi
+   sudo fbi -T 1 -a -noverbose 1.jpg
    ```
 
 4. Ensure the upload directories exist:
    ```
-   mkdir -p /home/orangepi/web/up_pic/uploads
-   mkdir -p /home/orangepi/web/up_pic/thumbnails
+   mkdir -p web/up_pic/uploads
+   mkdir -p web/up_pic/thumbnails
    ```
 
 5. Run the application:
@@ -77,7 +80,7 @@ A web-based application for uploading, managing, and displaying images on a conn
 <a name="chinese"></a>
 ## 图像显示和控制系统
 
-一个基于Web的应用程序，用于上传、管理和在连接的显示器（如3D显示器Companion-1）上显示图像，具有远程控制功能。
+一个基于Web的应用程序，用于在连接的显示器（如3D显示器Companion-1）上执行上传、管理和显示图像，具有远程控制功能。
 
 ### 功能特点
 
@@ -86,6 +89,8 @@ A web-based application for uploading, managing, and displaying images on a conn
 - 在连接的屏幕上显示选定的图片
 - 图片幻灯片模式和导航控制
 - 删除不需要的图片
+- 自动切换图片
+- 选定子文件夹并只使用该文件夹下的图片
 - 通过Web界面进行远程控制
 
 ### 系统要求
@@ -109,15 +114,16 @@ A web-based application for uploading, managing, and displaying images on a conn
    pip install flask pillow
    ```
 
-3. 在Linux设备上安装FBI：
+3. 在Linux设备上安装FBI并测试显示功能：
    ```
    sudo apt-get install fbi
+   sudo fbi -T 1 -a -noverbose 1.jpg
    ```
 
 4. 确保上传目录存在：
    ```
-   mkdir -p /home/orangepi/web/up_pic/uploads
-   mkdir -p /home/orangepi/web/up_pic/thumbnails
+   mkdir -p web/up_pic/uploads
+   mkdir -p web/up_pic/thumbnails
    ```
 
 5. 运行应用程序：
