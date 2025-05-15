@@ -5,8 +5,9 @@ import time
 import threading
 
 app = Flask(__name__)
-UPLOAD_FOLDER = './uploads'
+BASE_UPLOAD_DIR = './uploads'
 THUMBNAIL_FOLDER = './thumbnails'
+CURRENT_UPLOAD_FOLDER = BASE_UPLOAD_DIR  # 默认使用基础目录
 lastpid = None
 auto_play_active = False
 auto_play_thread = None
@@ -15,8 +16,8 @@ auto_play_thread = None
 # os.system('echo 100000000 | sudo tee /sys/kernel/debug/mmc0/clock')
 os.system(f'sudo killall fbi')
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(BASE_UPLOAD_DIR):
+    os.makedirs(BASE_UPLOAD_DIR)
 if not os.path.exists(THUMBNAIL_FOLDER):
     os.makedirs(THUMBNAIL_FOLDER)
 
@@ -32,9 +33,20 @@ def create_thumbnail(image_path, filename):
         print(f"缩略图创建失败: {e}")
         return None
 
+def get_all_folders(base_dir):
+    """获取base_dir下所有子文件夹，包括base_dir本身"""
+    folders = [base_dir]
+    
+    for root, dirs, _ in os.walk(base_dir):
+        for dir_name in dirs:
+            full_path = os.path.join(root, dir_name)
+            folders.append(full_path)
+    
+    return folders
+
 def show_image(index):
     global filelist
-    os.system(f'sudo fbi -T 1 -a -noverbose {UPLOAD_FOLDER}/{filelist[index]}')
+    os.system(f'sudo fbi -T 1 -a -noverbose {os.path.join(CURRENT_UPLOAD_FOLDER, filelist[index])}')
     global lastpid
     if lastpid:
         os.system(f'sudo kill -9 {lastpid}')
@@ -55,13 +67,64 @@ def auto_play(interval=5):
             findex = (findex + 1) % listsize
             show_image(findex)
 
+@app.route('/get_folders')
+def get_folders():
+    """返回可用的文件夹列表"""
+    folders = get_all_folders(BASE_UPLOAD_DIR)
+    # 转换为相对于BASE_UPLOAD_DIR的路径，使显示更简洁
+    folder_options = []
+    for folder in folders:
+        if folder == BASE_UPLOAD_DIR:
+            display_name = "根目录"
+        else:
+            display_name = folder.replace(BASE_UPLOAD_DIR + '/', '')
+            display_name = folder.replace(BASE_UPLOAD_DIR + '\\', '')
+        
+        folder_options.append({
+            'path': folder,
+            'display_name': display_name
+        })
+    
+    return jsonify({
+        'folders': folder_options,
+        'current_folder': CURRENT_UPLOAD_FOLDER
+    })
+
+@app.route('/set_folder', methods=['POST'])
+def set_folder():
+    """设置当前使用的文件夹"""
+    global CURRENT_UPLOAD_FOLDER
+    
+    folder_path = request.json.get('folder_path')
+    # 确保只能选择BASE_UPLOAD_DIR下的文件夹
+    if not folder_path.startswith(BASE_UPLOAD_DIR):
+        return jsonify({'success': False, 'message': '无效的文件夹路径'})
+    
+    # 确保文件夹存在
+    if not os.path.isdir(folder_path):
+        return jsonify({'success': False, 'message': '文件夹不存在'})
+    
+    CURRENT_UPLOAD_FOLDER = folder_path
+    
+    # 确保目录存在
+    if not os.path.exists(CURRENT_UPLOAD_FOLDER):
+        os.makedirs(CURRENT_UPLOAD_FOLDER)
+    
+    return jsonify({
+        'success': True, 
+        'message': f'已切换到文件夹: {folder_path}',
+        'current_folder': CURRENT_UPLOAD_FOLDER
+    })
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/uploads/<filename>')
+@app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    """修改为支持子文件夹的文件访问"""
+    # 从CURRENT_UPLOAD_FOLDER的相对路径获取文件
+    return send_from_directory(CURRENT_UPLOAD_FOLDER, filename)
 
 @app.route('/thumbnails/<filename>')
 def thumbnail_file(filename):
@@ -70,12 +133,13 @@ def thumbnail_file(filename):
 @app.route('/get_images')
 def get_images():
     images = []
-    for file in os.listdir(UPLOAD_FOLDER):
-        if file.lower().endswith(('.jpg', '.png', '.jpeg', '.gif')):
+    for file in os.listdir(CURRENT_UPLOAD_FOLDER):
+        file_path = os.path.join(CURRENT_UPLOAD_FOLDER, file)
+        if os.path.isfile(file_path) and file.lower().endswith(('.jpg', '.png', '.jpeg', '.gif')):
             # 检查是否已有缩略图，没有则创建
             thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(file)[0]}.jpg")
             if not os.path.exists(thumb_path):
-                create_thumbnail(os.path.join(UPLOAD_FOLDER, file), file)
+                create_thumbnail(file_path, file)
             
             images.append({
                 'id': file,
@@ -88,7 +152,7 @@ def get_images():
 @app.route('/show_image/<filename>', methods=['POST'])
 def show_selected_image(filename):
     try:
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        filepath = os.path.join(CURRENT_UPLOAD_FOLDER, filename)
         if os.path.exists(filepath):
             os.system(f'sudo fbi -T 1 -a -noverbose {filepath}')
             global lastpid
@@ -104,7 +168,7 @@ def show_selected_image(filename):
 @app.route('/delete_image/<filename>', methods=['POST'])
 def delete_image(filename):
     try:
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        filepath = os.path.join(CURRENT_UPLOAD_FOLDER, filename)
         thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(filename)[0]}.jpg")
         if os.path.exists(filepath):
             os.remove(filepath)
@@ -122,7 +186,7 @@ def upload_file():
     if file.filename == '':
         return redirect(request.url)
     if file:
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        filepath = os.path.join(CURRENT_UPLOAD_FOLDER, file.filename)
         file.save(filepath)
         # 创建缩略图
         create_thumbnail(filepath, file.filename)
@@ -140,13 +204,16 @@ def startppt():
     # filelist 当前目录下的所有图片文件
     global listsize, findex, filelist, lasttime
     filelist = []
-    for file in os.listdir(UPLOAD_FOLDER):
-        if file.endswith('.jpg') or file.endswith('.png') or file.endswith('.jpeg'):
+    for file in os.listdir(CURRENT_UPLOAD_FOLDER):
+        if os.path.isfile(os.path.join(CURRENT_UPLOAD_FOLDER, file)) and (file.endswith('.jpg') or file.endswith('.png') or file.endswith('.jpeg')):
             filelist.append(file)
     findex = 0
     listsize = len(filelist)
     # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filelist[findex]}') # 如果不使用sudo启动，需要脚本申请sudo权限
-    show_image(findex)
+    if listsize > 0:
+        show_image(findex)
+    else:
+        return jsonify({'success': False, 'message': '当前文件夹没有图片'})
     return jsonify({'success': True, 'message': 'started'})
 
 @app.route('/left', methods=['POST'])
@@ -171,16 +238,21 @@ def start_auto_play():
     
     # 先初始化filelist
     filelist = []
-    for file in os.listdir(UPLOAD_FOLDER):
-        if file.endswith('.jpg') or file.endswith('.png') or file.endswith('.jpeg'):
+    for file in os.listdir(CURRENT_UPLOAD_FOLDER):
+        if os.path.isfile(os.path.join(CURRENT_UPLOAD_FOLDER, file)) and (file.endswith('.jpg') or file.endswith('.png') or file.endswith('.jpeg')):
             filelist.append(file)
+    
     findex = 0
     listsize = len(filelist)
+    
+    if listsize == 0:
+        return jsonify({'success': False, 'message': '当前文件夹没有图片'})
+    
     if listsize > 0:
         show_image(findex)
     
     # interval = request.json.get('interval', 5)  # 从请求中获取间隔时间，默认5秒
-    interval = 30
+    interval = 30  # 默认30秒间隔
     
     # 确保之前的轮播已经停止
     stop_auto_play()

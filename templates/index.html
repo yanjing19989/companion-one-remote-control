@@ -68,6 +68,9 @@
         <form id="uploadForm" class="mt-4">
             <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
                 <input type="file" id="file" name="file" onchange="previewImage(event)">
+                <div style="margin-left: auto; margin-right: auto; width: 50%;">
+                    <select id="folderSelect" class="form-control" style="width: 60%;"></select>
+                </div>
                 <button type="button" class="btn btn-danger" id="shutdownpi">关机</button>
             </div>
 
@@ -112,6 +115,7 @@
 
         // 页面加载完成后获取并显示所有图片
         $(document).ready(function() {
+            loadFolders(); // 首先加载文件夹列表
             loadImages();
             
             // 上传表单提交处理
@@ -129,6 +133,9 @@
                             alert('文件上传并处理成功');
                             // 重新加载图片列表
                             loadImages();
+                            // 清空文件选择和预览
+                            $('#file').val('');
+                            $('#preview').attr('src', '#').hide();
                         } else {
                             alert('文件上传失败: ' + response.message);
                         }
@@ -199,7 +206,62 @@
                 }
             });
             
+            // 文件夹选择变化事件
+            $('#folderSelect').on('change', function() {
+                const selectedFolder = $(this).val();
+                if (selectedFolder) {
+                    $.ajax({
+                        url: '/set_folder',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ folder_path: selectedFolder }),
+                        success: function(response) {
+                            if (response.success) {
+                                // alert(response.message);
+                                loadImages(); // 重新加载图片
+                            } else {
+                                alert('切换文件夹失败: ' + response.message);
+                                // 如果切换失败，可能需要重新加载文件夹列表以恢复到之前的状态
+                                loadFolders();
+                            }
+                        },
+                        error: function() {
+                            alert('切换文件夹失败，请检查网络连接');
+                            loadFolders(); // 出错时也尝试恢复
+                        }
+                    });
+                }
+            });
         });
+
+        // 加载文件夹列表
+        function loadFolders() {
+            $.ajax({
+                url: '/get_folders',
+                type: 'GET',
+                success: function(data) {
+                    const folderSelect = $('#folderSelect');
+                    folderSelect.empty(); // 清空现有选项
+                    if (data.folders && data.folders.length > 0) {
+                        data.folders.forEach(function(folder) {
+                            const option = $('<option></option>')
+                                .val(folder.path)
+                                .text(folder.display_name);
+                            if (folder.path === data.current_folder) {
+                                option.prop('selected', true);
+                            }
+                            folderSelect.append(option);
+                        });
+                    } else {
+                        folderSelect.append($('<option></option>').text('没有可用的文件夹'));
+                    }
+                },
+                error: function() {
+                    alert('获取文件夹列表失败');
+                    $('#folderSelect').empty().append($('<option></option>').text('加载文件夹失败'));
+                }
+            });
+        }
 
         // 加载所有图片
         function loadImages() {
