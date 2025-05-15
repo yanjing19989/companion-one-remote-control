@@ -18,6 +18,8 @@
             height: auto;
             border: 2px solid transparent;
             transition: all 0.3s ease;
+            object-fit: contain; /* 保持原始比例，不拉伸 */
+            object-position: center; /* 居中显示 */
         }
         .thumbnail:hover {
             border-color: #007bff;
@@ -74,6 +76,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
+                    <button type="button" class="btn btn-primary" style="margin-right: 15px;" id="applyImage">应用</button>
                     <h5 class="modal-title" id="imageModalLabel">图片预览</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -83,9 +86,8 @@
                     <img id="modalImage" src="" alt="图片预览" class="img-fluid">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
-                    <button type="button" class="btn btn-primary" id="applyImage">应用</button>
-                </div>
+                    <button type="button" class="btn btn-danger" id="deleteImage">删除</button>
+                </div> 
             </div>
         </div>
     </div>
@@ -137,6 +139,27 @@
                         },
                         error: function() {
                             alert('应用失败，请检查网络连接');
+                        }
+                    });
+                }
+            });
+            // 删除按钮点击事件
+            $('#deleteImage').on('click', function() {
+                if (currentImageFilename) {
+                    $.ajax({
+                        url: `/delete_image/${currentImageFilename}`,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                $('#imageModal').modal('hide');
+                                alert('图片已成功删除');
+                                loadImages();
+                            } else {
+                                alert('删除失败: ' + response.message);
+                            }
+                        },
+                        error: function() {
+                            alert('删除失败，请检查网络连接');
                         }
                     });
                 }

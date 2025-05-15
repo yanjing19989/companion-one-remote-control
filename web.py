@@ -20,8 +20,8 @@ def create_thumbnail(image_path, filename):
     try:
         img = Image.open(image_path)
         img.thumbnail((256, 512))
-        thumb_path = os.path.join(THUMBNAIL_FOLDER, filename)
-        img.save(thumb_path)
+        thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(filename)[0]}.jpg")
+        img.convert("RGB").save(thumb_path, "JPEG", optimize=True)
         return thumb_path
     except Exception as e:
         print(f"缩略图创建失败: {e}")
@@ -54,14 +54,14 @@ def get_images():
     for file in os.listdir(UPLOAD_FOLDER):
         if file.lower().endswith(('.jpg', '.png', '.jpeg', '.gif')):
             # 检查是否已有缩略图，没有则创建
-            thumb_path = os.path.join(THUMBNAIL_FOLDER, file)
+            thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(file)[0]}.jpg")
             if not os.path.exists(thumb_path):
                 create_thumbnail(os.path.join(UPLOAD_FOLDER, file), file)
             
             images.append({
                 'id': file,
                 'name': file,
-                'thumbnail_url': url_for('thumbnail_file', filename=file),
+                'thumbnail_url': url_for('thumbnail_file', filename=f"{os.path.splitext(file)[0]}.jpg"),
                 'image_url': url_for('uploaded_file', filename=file)
             })
     return jsonify(images)
@@ -79,6 +79,19 @@ def show_selected_image(filename):
             return jsonify({'success': True, 'message': f'Image {filename} displayed'})
         else:
             return jsonify({'success': False, 'message': 'Image not found'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/delete_image/<filename>', methods=['POST'])
+def delete_image(filename):
+    try:
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(filename)[0]}.jpg")
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        if os.path.exists(thumb_path):
+            os.remove(thumb_path)
+        return jsonify({'success': True, 'message': f'Image {filename} deleted'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
@@ -105,6 +118,7 @@ def upload_file():
 
 @app.route('/startppt', methods=['POST'])
 def startppt():
+    # filelist 当前目录下的所有图片文件
     global listsize, findex, filelist, lasttime
     filelist = []
     for file in os.listdir(UPLOAD_FOLDER):
