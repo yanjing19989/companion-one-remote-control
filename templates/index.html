@@ -26,8 +26,10 @@
             transform: scale(1.03);
         }
         #imageModal .modal-body img {
-            max-width: 100%;
+            max-width: 90%;
             height: auto;
+            display: block;
+            margin: auto;
         }
     </style>
 </head>
@@ -41,9 +43,19 @@
                         <button type="submit" class="btn btn-success">上一个</button>
                     </form>
                 </div>
-                <div class="col">
+                <!-- <div class="col">
                     <form id="startForm" onsubmit="submitForm(event, '/startppt')">
                         <button type="submit" class="btn btn-success">开始轮播</button>
+                    </form>
+                </div> -->
+                <div class="col">
+                    <form id="startForm" onsubmit="submitForm(event, '/startautoplay')">
+                        <button type="submit" class="btn btn-success">开始轮播</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <form id="stopForm" onsubmit="submitForm(event, '/stopautoplay')">
+                        <button type="submit" class="btn btn-success">停止轮播</button>
                     </form>
                 </div>
                 <div class="col">
@@ -54,8 +66,9 @@
             </div>
         </div>
         <form id="uploadForm" class="mt-4">
-            <div class="form-group">
+            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
                 <input type="file" id="file" name="file" onchange="previewImage(event)">
+                <button type="button" class="btn btn-danger" id="shutdownpi">关机</button>
             </div>
 
             <div class="form-group text-center"><button type="submit" class="btn btn-primary">上传</button></div>
@@ -146,24 +159,46 @@
             // 删除按钮点击事件
             $('#deleteImage').on('click', function() {
                 if (currentImageFilename) {
+                    if (confirm(`确定要删除这张图片${currentImageFilename}吗？`)) {
+                        $.ajax({
+                            url: `/delete_image/${currentImageFilename}`,
+                            type: 'POST',
+                            success: function(response) {
+                                if (response.success) {
+                                    $('#imageModal').modal('hide');
+                                    alert('图片已成功删除');
+                                    loadImages();
+                                } else {
+                                    alert('删除失败: ' + response.message);
+                                }
+                            },
+                            error: function() {
+                                alert('删除失败，请检查网络连接');
+                            }
+                        });
+                    }
+                }
+            });
+            // 关机按钮点击事件，弹出确认框
+            $('#shutdownpi').on('click', function() {
+                if (confirm('确定要关机吗？')) {
                     $.ajax({
-                        url: `/delete_image/${currentImageFilename}`,
+                        url: '/shutdown',
                         type: 'POST',
                         success: function(response) {
                             if (response.success) {
-                                $('#imageModal').modal('hide');
-                                alert('图片已成功删除');
-                                loadImages();
+                                alert('正在关机...');
                             } else {
-                                alert('删除失败: ' + response.message);
+                                alert('关机失败: ' + response.message);
                             }
                         },
                         error: function() {
-                            alert('删除失败，请检查网络连接');
+                            alert('关机失败，请检查网络连接');
                         }
                     });
                 }
             });
+            
         });
 
         // 加载所有图片

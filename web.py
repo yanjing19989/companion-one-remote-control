@@ -1,13 +1,18 @@
 from flask import Flask, request, render_template, redirect, jsonify, url_for, send_from_directory
 import os
 from PIL import Image
-import uuid
 import time
+import threading
 
 app = Flask(__name__)
 UPLOAD_FOLDER = './uploads'
 THUMBNAIL_FOLDER = './thumbnails'
 lastpid = None
+auto_play_active = False
+auto_play_thread = None
+
+# sd卡超频
+# os.system('echo 100000000 | sudo tee /sys/kernel/debug/mmc0/clock')
 os.system(f'sudo killall fbi')
 
 if not os.path.exists(UPLOAD_FOLDER):
@@ -35,6 +40,20 @@ def show_image(index):
         os.system(f'sudo kill -9 {lastpid}')
     lastpid = os.popen('pgrep fbi | tail -n 1').read().strip()
     print(filelist[index])
+
+def stop_auto_play():
+    global auto_play_active, auto_play_thread
+    auto_play_active = False
+    if auto_play_thread and auto_play_thread.is_alive():
+        auto_play_thread.join(0.1)  # 等待线程结束，设置短超时
+
+def auto_play(interval=5):
+    global auto_play_active, findex
+    while auto_play_active:
+        time.sleep(interval)  # 等待指定的间隔
+        if auto_play_active:  # 再次检查，以便及时响应停止命令
+            findex = (findex + 1) % listsize
+            show_image(findex)
 
 @app.route('/')
 def index():
@@ -126,12 +145,14 @@ def startppt():
             filelist.append(file)
     findex = 0
     listsize = len(filelist)
+    # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filelist[findex]}') # 如果不使用sudo启动，需要脚本申请sudo权限
     show_image(findex)
     return jsonify({'success': True, 'message': 'started'})
 
 @app.route('/left', methods=['POST'])
 def left():
     global listsize, findex, lasttime
+    stop_auto_play()  # 手动操作时停止轮播
     findex = (findex-1)%listsize
     show_image(findex)
     return jsonify({'success': True, 'message': 'left'})
@@ -139,9 +160,49 @@ def left():
 @app.route('/right', methods=['POST'])
 def right():
     global listsize, findex, lasttime
+    stop_auto_play()  # 手动操作时停止轮播
     findex = (findex+1)%listsize
     show_image(findex)
     return jsonify({'success': True, 'message': 'right'})
+
+@app.route('/startautoplay', methods=['POST'])
+def start_auto_play():
+    global auto_play_active, auto_play_thread, filelist, listsize, findex
+    
+    # 先初始化filelist
+    filelist = []
+    for file in os.listdir(UPLOAD_FOLDER):
+        if file.endswith('.jpg') or file.endswith('.png') or file.endswith('.jpeg'):
+            filelist.append(file)
+    findex = 0
+    listsize = len(filelist)
+    if listsize > 0:
+        show_image(findex)
+    
+    # interval = request.json.get('interval', 5)  # 从请求中获取间隔时间，默认5秒
+    interval = 30
+    
+    # 确保之前的轮播已经停止
+    stop_auto_play()
+    
+    # 启动新的轮播
+    auto_play_active = True
+    auto_play_thread = threading.Thread(target=auto_play, args=(interval,))
+    auto_play_thread.daemon = True
+    auto_play_thread.start()
+    
+    return jsonify({'success': True, 'message': f'Auto play started with interval {interval} seconds'})
+
+@app.route('/stopautoplay', methods=['POST'])
+def stop_auto_play_route():
+    stop_auto_play()
+    return jsonify({'success': True, 'message': 'Auto play stopped'})
+
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    # 3秒后关机
+    os.system(f'sudo shutdown -h +3')
+    return jsonify({'success': True, 'message': 'shutdown'})
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')
