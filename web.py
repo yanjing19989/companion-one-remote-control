@@ -44,9 +44,9 @@ def get_all_folders(base_dir):
     
     return folders
 
-def show_image(index):
-    global filelist
+def show_image(filepath):
     os.system(f'sudo fbi -T 1 -a -noverbose {os.path.join(CURRENT_UPLOAD_FOLDER, filelist[index])}')
+    # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filepath}') # 如果不使用sudo启动，需要脚本申请sudo权限
     global lastpid
     if lastpid:
         os.system(f'sudo kill -9 {lastpid}')
@@ -154,11 +154,7 @@ def show_selected_image(filename):
     try:
         filepath = os.path.join(CURRENT_UPLOAD_FOLDER, filename)
         if os.path.exists(filepath):
-            os.system(f'sudo fbi -T 1 -a -noverbose {filepath}')
-            global lastpid
-            if lastpid:
-                os.system(f'sudo kill -9 {lastpid}')
-            lastpid = os.popen('pgrep fbi | tail -n 1').read().strip()
+            show_image(filepath)
             return jsonify({'success': True, 'message': f'Image {filename} displayed'})
         else:
             return jsonify({'success': False, 'message': 'Image not found'})
@@ -185,6 +181,11 @@ def upload_file():
     file = request.files['file']
     if file.filename == '':
         return redirect(request.url)
+    # 在BASE_UPLOAD_DIR目录下搜索，如果已经存在同名文件，则返回失败
+    for path, dirs, files in os.walk(BASE_UPLOAD_DIR):
+        print(path, dirs, files)
+        if file.filename in files:
+            return jsonify({'success': False, 'message': '文件已存在，请重命名后再上传'})
     if file:
         filepath = os.path.join(CURRENT_UPLOAD_FOLDER, file.filename)
         file.save(filepath)
@@ -211,25 +212,25 @@ def startppt():
     listsize = len(filelist)
     # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filelist[findex]}') # 如果不使用sudo启动，需要脚本申请sudo权限
     if listsize > 0:
-        show_image(findex)
+        show_image(filelist[findex])
     else:
         return jsonify({'success': False, 'message': '当前文件夹没有图片'})
     return jsonify({'success': True, 'message': 'started'})
 
 @app.route('/left', methods=['POST'])
 def left():
-    global listsize, findex, lasttime
+    global listsize, findex, filelist, lasttime
     stop_auto_play()  # 手动操作时停止轮播
     findex = (findex-1)%listsize
-    show_image(findex)
+    show_image(filelist[findex])
     return jsonify({'success': True, 'message': 'left'})
 
 @app.route('/right', methods=['POST'])
 def right():
-    global listsize, findex, lasttime
+    global listsize, findex, filelist, lasttime
     stop_auto_play()  # 手动操作时停止轮播
     findex = (findex+1)%listsize
-    show_image(findex)
+    show_image(filelist[findex])
     return jsonify({'success': True, 'message': 'right'})
 
 @app.route('/startautoplay', methods=['POST'])
