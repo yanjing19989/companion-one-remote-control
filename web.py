@@ -45,13 +45,12 @@ def get_all_folders(base_dir):
     return folders
 
 def show_image(filepath):
-    os.system(f'sudo fbi -T 1 -a -noverbose {os.path.join(CURRENT_UPLOAD_FOLDER, filelist[index])}')
+    os.system(f'sudo fbi -T 1 -a -noverbose {os.path.join(CURRENT_UPLOAD_FOLDER, filepath)}')
     # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filepath}') # 如果不使用sudo启动，需要脚本申请sudo权限
     global lastpid
     if lastpid:
         os.system(f'sudo kill -9 {lastpid}')
     lastpid = os.popen('pgrep fbi | tail -n 1').read().strip()
-    print(filelist[index])
 
 def stop_auto_play():
     global auto_play_active, auto_play_thread
@@ -78,7 +77,6 @@ def get_folders():
             display_name = "根目录"
         else:
             display_name = folder.replace(BASE_UPLOAD_DIR + '/', '')
-            display_name = folder.replace(BASE_UPLOAD_DIR + '\\', '')
         
         folder_options.append({
             'path': folder,
