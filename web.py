@@ -7,13 +7,12 @@ import threading
 app = Flask(__name__)
 BASE_UPLOAD_DIR = './uploads'
 THUMBNAIL_FOLDER = './thumbnails'
-CURRENT_UPLOAD_FOLDER = BASE_UPLOAD_DIR  # 默认使用基础目录
+# 默认使用基础目录
+CURRENT_UPLOAD_FOLDER = BASE_UPLOAD_DIR  
 lastpid = None
 auto_play_active = False
 auto_play_thread = None
 
-# sd卡超频
-# os.system('echo 100000000 | sudo tee /sys/kernel/debug/mmc0/clock')
 os.system(f'sudo killall fbi')
 
 if not os.path.exists(BASE_UPLOAD_DIR):
@@ -46,6 +45,7 @@ def get_all_folders(base_dir):
 
 def show_image(filepath):
     os.system(f'sudo fbi -T 1 -a -noverbose {os.path.join(CURRENT_UPLOAD_FOLDER, filepath)}')
+    # -T 1: 指定显示终端1, 如果只接了一个显示器，一般为1
     # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filepath}') # 如果不使用sudo启动，需要脚本申请sudo权限
     global lastpid
     if lastpid:
@@ -74,7 +74,7 @@ def get_folders():
     folder_options = []
     for folder in folders:
         if folder == BASE_UPLOAD_DIR:
-            display_name = "根目录"
+            display_name = "root"
         else:
             display_name = folder.replace(BASE_UPLOAD_DIR + '/', '')
         
@@ -98,13 +98,11 @@ def set_folder():
     if not folder_path.startswith(BASE_UPLOAD_DIR):
         return jsonify({'success': False, 'message': '无效的文件夹路径'})
     
-    # 确保文件夹存在
     if not os.path.isdir(folder_path):
         return jsonify({'success': False, 'message': '文件夹不存在'})
     
     CURRENT_UPLOAD_FOLDER = folder_path
     
-    # 确保目录存在
     if not os.path.exists(CURRENT_UPLOAD_FOLDER):
         os.makedirs(CURRENT_UPLOAD_FOLDER)
     
@@ -118,7 +116,7 @@ def set_folder():
 def index():
     return render_template('index.html')
 
-@app.route('/uploads/<path:filename>')
+@app.route('/uploads/<filename>')
 def uploaded_file(filename):
     """修改为支持子文件夹的文件访问"""
     # 从CURRENT_UPLOAD_FOLDER的相对路径获取文件
@@ -187,7 +185,6 @@ def upload_file():
     if file:
         filepath = os.path.join(CURRENT_UPLOAD_FOLDER, file.filename)
         file.save(filepath)
-        # 创建缩略图
         create_thumbnail(filepath, file.filename)
         
         os.system(f'sudo fbi -T 1 -a -noverbose {filepath}')
@@ -208,7 +205,6 @@ def startppt():
             filelist.append(file)
     findex = 0
     listsize = len(filelist)
-    # os.system(f'echo your_sudo_password | sudo -S fbi -T 1 -a -noverbose {filelist[findex]}') # 如果不使用sudo启动，需要脚本申请sudo权限
     if listsize > 0:
         show_image(filelist[findex])
     else:
@@ -272,7 +268,7 @@ def stop_auto_play_route():
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     # 3秒后关机
-    os.system(f'sudo shutdown -h +3')
+    os.system('(sleep 3 && sudo shutdown -h now) &')
     return jsonify({'success': True, 'message': 'shutdown'})
 
 if __name__ == '__main__':
