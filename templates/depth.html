@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全息3D图像查看器深度</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        h2 {
+            margin-top: 0; 
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .canvas-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        canvas {
+            border: 2px solid #444;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .control-group {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .control-group h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .control-item {
+            margin: 10px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        input[type="color"] {
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            margin: 5px 0;
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            padding: 5px;
+        }
+        
+        .value-display {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .load-images {
+            background: #444;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .image-preview {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .preview-item {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .preview-item img {
+            max-width: 200px;
+            max-height: 150px;
+            border: 1px solid #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>全息3D图像查看器</h1>
+        <!-- 图像加载区域 -->
+        <button onclick="window.location.href = '/'" >
+                返回主页
+        </button>
+        <br></br>
+        <div class="load-images">
+            <h2>加载图像</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label for="imageFile">原始图像:</label>
+                    <input type="file" id="imageFile" accept="image/*">
+                    <div class="preview-item">
+                        <img id="imagePreview" style="display: none;">
+                    </div>
+                </div>
+                <div>
+                    <label for="depthFile">深度图:</label>
+                    <input type="file" id="depthFile" accept="image/*">
+                    <div class="preview-item">
+                        <img id="depthPreview" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 渲染画布 -->
+        <div class="canvas-container">
+            <canvas id="glCanvas" width="1440" height="2560"></canvas>
+        </div>
+        
+        <!-- 控制参数 -->
+        <div class="controls">
+            <!-- 3D效果参数 -->
+            <div class="control-group">
+                <h3>3D效果参数</h3>
+                <div class="control-item">
+                    <label for="threshold">3D阈值: <span id="thresholdValue" class="value-display">15</span></label>
+                    <input type="range" id="threshold" min="5" max="60" value="15" step="0.1">
+                </div>
+                <div class="control-item">
+                    <label for="protrude">突出程度: <span id="protrudeValue" class="value-display">0.5</span></label>
+                    <input type="range" id="protrude" min="-0.5" max="0.5" value="0.5" step="0.01">
+                </div>
+            </div>
+            
+            <!-- 全息显示参数 -->
+            <div class="control-group">
+                <h3>全息显示参数</h3>
+                <div class="control-item">
+                    <label for="lineNumber">线数: <span id="lineNumberValue" class="value-display">19.61603</span></label>
+                    <input type="range" id="lineNumber" min="19" max="21" value="19.61603" step="0.00001">
+                </div>
+                <div class="control-item">
+                    <label for="obliquity">倾斜度: <span id="obliquityValue" class="value-display">0.101593</span></label>
+                    <input type="range" id="obliquity" min="-1" max="1" value="0.101593" step="0.00001">
+                </div>
+                <div class="control-item">
+                    <label for="deviation">中心偏移: <span id="deviationValue" class="value-display">15.83299625</span></label>
+                    <input type="range" id="deviation" min="-20" max="20" value="15.83299625" step="0.0000001">
+                </div>
+            </div>
+            
+            <!-- 图像变换参数 -->
+            <div class="control-group">
+                <h3>图像变换</h3>
+                <div class="control-item">
+                    <label for="scaleX">X缩放: <span id="scaleXValue" class="value-display">1.0</span></label>
+                    <input type="range" id="scaleX" min="0" max="2" value="1" step="0.01">
+                </div>
+                <div class="control-item">
+                    <label for="scaleY">Y缩放: <span id="scaleYValue" class="value-display">1.0</span></label>
+                    <input type="range" id="scaleY" min="0" max="2" value="1" step="0.01">
+                </div>
+                <div class="control-item">
+                    <label for="offsetX">X偏移: <span id="offsetXValue" class="value-display">0.0</span></label>
+                    <input type="range" id="offsetX" min="-1" max="1" value="0" step="0.01">
+                </div>
+                <div class="control-item">
+                    <label for="offsetY">Y偏移: <span id="offsetYValue" class="value-display">0.0</span></label>
+                    <input type="range" id="offsetY" min="-1" max="1" value="0" step="0.01">
+                </div>
+            </div>
+            
+            <!-- 模糊效果参数 -->
+            <div class="control-group">
+                <h3>模糊效果</h3>
+                <div class="control-item">
+                    <label for="blurSize">模糊大小: <span id="blurSizeValue" class="value-display">10</span></label>
+                    <input type="range" id="blurSize" min="0" max="100" value="10" step="1">
+                </div>
+                <div class="control-item">
+                    <label for="blurDepth">模糊深度阈值: <span id="blurDepthValue" class="value-display">0.0</span></label>
+                    <input type="range" id="blurDepth" min="0" max="1" value="0" step="0.01">
+                </div>
+                <div class="control-item">
+                    <label for="depthImageBlurSize">深度图模糊: <span id="depthImageBlurSizeValue" class="value-display">50</span></label>
+                    <input type="range" id="depthImageBlurSize" min="0" max="100" value="50" step="1">
+                </div>
+            </div>
+
+            <!-- 边框效果参数 -->
+            <div class="control-group">
+                <h3>边框效果</h3>
+                <div class="control-item">
+                    <label for="borderColor">边框颜色:<input type="color" id="borderColor" value="#000000"></label>
+                </div>
+                <div class="control-item">
+                    <label for="borderSizeX">水平边框大小: <span id="borderSizeXValue" class="value-display">0.0</span></label>
+                    <input type="range" id="borderSizeX" min="0" max="0.5" value="0" step="0.01">
+                </div>
+                <div class="control-item">
+                    <label for="borderSizeY">垂直边框大小: <span id="borderSizeYValue" class="value-display">0.0</span></label>
+                    <input type="range" id="borderSizeY" min="0" max="0.5" value="0" step="0.01">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebGL上下文和着色器程序
+        let gl;
+        let program;
+        let uniforms = {};
+        let textures = {};
+        
+        // 顶点着色器源码
+        const vertexShaderSource = `
+            attribute vec3 a_Position;
+            attribute vec2 a_TexCoord;
+            varying vec2 v_TexCoord;
+            
+            void main() {
+                gl_Position = vec4(a_Position, 1.0);
+                v_TexCoord = a_TexCoord;
+            }
+        `;
+        
+        // 片段着色器源码
+        const fragmentShaderSource = `
+            precision mediump float;
+            
+            #define gaussian_blur mat3(1, 2, 1, 2, 4, 2, 1, 2, 1) * 0.0625
+            #define box_blur mat3(1, 1, 1, 1, 1, 1, 1, 1, 1) * 0.1111
+            
+            uniform sampler2D g_Texture0;
+            uniform sampler2D g_Texture1;
+            uniform sampler2D g_Texture2;
+            uniform vec3 g_Screen;
+            
+            uniform float u_threshold;
+            uniform float u_protrude;
+            uniform float u_lineNumber;
+            uniform float u_obliquity;
+            uniform float u_Deviation;
+            uniform vec2 g_Texture1Resolution;
+            
+            uniform float u_scaleX;
+            uniform float u_scaleY;
+            uniform float u_offsetX;
+            uniform float u_offsetY;
+            
+            uniform float u_blurSize;
+            uniform float u_blurDepth;
+            uniform float u_depthImageBlurSize;
+            
+            uniform vec3 u_borderColor;
+            uniform float u_borderSizeX, u_borderSizeY;
+
+            const float screenWidth = 1440.0;
+            const float screenHeight = 2560.0;
+            const vec2 quiltSize = vec2(8., 5.);
+            const float numViews = quiltSize.x * quiltSize.y;
+            const float invView = 0.0;
+            
+            varying vec2 v_TexCoord;
+            
+            vec2 mirrored(vec2 v) {
+                vec2 m = mod(v, 2.);
+                return mix(m, 2.0 - m, step(1.0, m));
+            }
+            
+            vec4 convolute(vec2 uv, mat3 kernel, float size) {
+                if(size < 1.0) return texture2D(g_Texture1, uv);
+                vec4 color = vec4(0., 0., 0., 0.);
+                for (int x = 0; x < 3; x++) {
+                    for (int y = 0; y < 3; y++) {
+                        vec2 offset = vec2(float(x - 1), float(y - 1)) / g_Screen.xy * size;
+                        color += texture2D(g_Texture1, uv + offset) * kernel[x][y];
+                    }
+                }
+                return color;
+            }
+            
+            vec4 convoluteDepth(vec2 uv, mat3 kernel, float size) {
+                if(size < 1.0) return texture2D(g_Texture2, uv);
+                vec4 color = vec4(0., 0., 0., 0.);
+                for (int x = 0; x < 3; x++) {
+                    for (int y = 0; y < 3; y++) {
+                        vec2 offset = vec2(float(x - 1), float(y - 1)) / g_Screen.xy * size;
+                        color += texture2D(g_Texture2, uv + offset) * kernel[x][y];
+                    }
+                }
+                return color;
+            }
+            
+            vec4 depthQuilts(vec2 iuv) {
+                vec2 coord = iuv * vec2(quiltSize.x, quiltSize.y);
+                vec2 fractCoord = fract(coord);
+                vec2 floorCoord = floor(coord);
+                float imageId = floorCoord.x + floorCoord.y * quiltSize.x;
+                float valueId = imageId / (quiltSize.x * quiltSize.y - 1.);
+                
+                vec2 uv = vec2(u_scaleX, u_scaleY) * (fractCoord - 0.5) + 0.5 + vec2(u_offsetX, u_offsetY);
+                
+                vec4 depthMap = convoluteDepth(uv, box_blur, u_depthImageBlurSize);
+                float xOffset = (depthMap.r - (0.0 - u_protrude) - 0.5) * ((valueId - 0.5) * 2.0 / u_threshold);
+                vec2 fake3d = vec2(uv.x + xOffset, uv.y);
+
+                if((valueId > 0.5 ? xOffset < 0. : xOffset > 0.) && 
+                    (fractCoord.x < u_borderSizeX || fractCoord.y < u_borderSizeY || 
+                    fractCoord.x > (1. - u_borderSizeX) || fractCoord.y > (1. - u_borderSizeY))) {
+                    return vec4(u_borderColor, 1.0);
+                }
+
+                vec4 color = depthMap.r < u_blurDepth ? 
+                    convolute(mirrored(fake3d), gaussian_blur, u_blurSize) : 
+                    texture2D(g_Texture1, fake3d);
+                
+                return color;
+            }
+            
+            vec2 texArr(vec3 uvz) {
+                float z = floor((1.0 - uvz.z) * numViews);
+                vec2 viewSize = g_Texture1Resolution / vec2(quiltSize.x, quiltSize.y);
+                
+                vec2 pixelCoord;
+                pixelCoord.x = (mod(z, quiltSize.x) * viewSize.x + uvz.x * viewSize.x);
+                pixelCoord.y = (floor(z / quiltSize.x) * viewSize.y + uvz.y * viewSize.y);
+                
+                return pixelCoord / g_Texture1Resolution;
+            }
+            
+            void main() {
+                vec2 uv = v_TexCoord.xy;
+                
+                float pitch = (screenWidth * 3.0) / u_lineNumber;
+                float slope = u_obliquity * (screenHeight / screenWidth);
+                float subp = 1.0 / (screenWidth * 3.0);
+                float center = (u_Deviation / screenWidth) * pitch;
+                
+                float r, g, b;
+                
+                // 红色通道
+                float z = (uv.x + 0.0 * subp + uv.y * slope) * pitch - center;
+                z = mod(z + ceil(abs(z)), 1.0);
+                z = (1.0 - invView) * z + invView * (1.0 - z);
+                vec2 iuv = texArr(vec3(uv, z));
+                r = depthQuilts(iuv).r;
+                
+                // 绿色通道
+                z = (uv.x + 1.0 * subp + uv.y * slope) * pitch - center;
+                z = mod(z + ceil(abs(z)), 1.0);
+                z = (1.0 - invView) * z + invView * (1.0 - z);
+                iuv = texArr(vec3(uv, z));
+                g = depthQuilts(iuv).g;
+                
+                // 蓝色通道
+                z = (uv.x + 2.0 * subp + uv.y * slope) * pitch - center;
+                z = mod(z + ceil(abs(z)), 1.0);
+                z = (1.0 - invView) * z + invView * (1.0 - z);
+                iuv = texArr(vec3(uv, z));
+                b = depthQuilts(iuv).b;
+                
+                gl_FragColor = vec4(r, g, b, 1.0);
+            }
+        `;
+        
+        // 初始化WebGL
+        function initWebGL() {
+            const canvas = document.getElementById('glCanvas');
+            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) {
+                alert('您的浏览器不支持WebGL');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 创建着色器
+        function createShader(type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('着色器编译错误:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            
+            return shader;
+        }
+        
+        // 创建着色器程序
+        function createProgram() {
+            const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+            const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+            
+            program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('着色器程序链接错误:', gl.getProgramInfoLog(program));
+                return false;
+            }
+            
+            gl.useProgram(program);
+            return true;
+        }
+        
+        // 获取uniform位置
+        function getUniforms() {
+            const uniformNames = [
+                'g_Texture0', 'g_Texture1', 'g_Texture2', 'g_Screen', 'g_Texture1Resolution',
+                'u_threshold', 'u_protrude', 'u_lineNumber', 'u_obliquity', 'u_Deviation',
+                'u_scaleX', 'u_scaleY', 'u_offsetX', 'u_offsetY',
+                'u_blurSize', 'u_blurDepth', 'u_depthImageBlurSize',
+                'u_borderColor', 'u_borderSizeX', 'u_borderSizeY'
+            ];
+            
+            uniformNames.forEach(name => {
+                uniforms[name] = gl.getUniformLocation(program, name);
+            });
+        }
+        
+        // 创建纹理
+        function createTexture(image) {
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            
+            return texture;
+        }
+        
+        // 设置几何体
+        function setupGeometry() {
+            const vertices = new Float32Array([
+                -1.0, -1.0, 0.0, 0.0, 1.0,
+                 1.0, -1.0, 0.0, 1.0, 1.0,
+                -1.0,  1.0, 0.0, 0.0, 0.0,
+                 1.0,  1.0, 0.0, 1.0, 0.0
+            ]);
+            
+            const buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            
+            const positionLocation = gl.getAttribLocation(program, 'a_Position');
+            const texCoordLocation = gl.getAttribLocation(program, 'a_TexCoord');
+            
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 20, 0);
+            
+            gl.enableVertexAttribArray(texCoordLocation);
+            gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 20, 12);
+        }
+
+        // 16进制颜色转RGB
+        function hexToRgb(hex) {
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16) / 255.0,
+                g: parseInt(result[2], 16) / 255.0,
+                b: parseInt(result[3], 16) / 255.0
+            } : { r: 0, g: 0, b: 0 };
+        }
+        
+        // 渲染场景
+        function render() {
+            const canvas = gl.canvas;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            
+            // 设置纹理
+            if (textures.image) {
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, textures.image);
+                gl.uniform1i(uniforms.g_Texture1, 1);
+                
+                gl.uniform2f(uniforms.g_Texture1Resolution, 4320.0, 4800.0);
+            }
+            
+            if (textures.depth) {
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, textures.depth);
+                gl.uniform1i(uniforms.g_Texture2, 2);
+            }
+            
+            // 设置uniform值
+            gl.uniform3f(uniforms.g_Screen, canvas.width, canvas.height, 1.0);
+            
+            // 从控件获取参数值
+            gl.uniform1f(uniforms.u_threshold, parseFloat(document.getElementById('threshold').value));
+            gl.uniform1f(uniforms.u_protrude, parseFloat(document.getElementById('protrude').value));
+            gl.uniform1f(uniforms.u_lineNumber, parseFloat(document.getElementById('lineNumber').value));
+            gl.uniform1f(uniforms.u_obliquity, parseFloat(document.getElementById('obliquity').value));
+            gl.uniform1f(uniforms.u_Deviation, parseFloat(document.getElementById('deviation').value));
+            
+            gl.uniform1f(uniforms.u_scaleX, parseFloat(document.getElementById('scaleX').value));
+            gl.uniform1f(uniforms.u_scaleY, parseFloat(document.getElementById('scaleY').value));
+            gl.uniform1f(uniforms.u_offsetX, parseFloat(document.getElementById('offsetX').value));
+            gl.uniform1f(uniforms.u_offsetY, parseFloat(document.getElementById('offsetY').value));
+            
+            gl.uniform1f(uniforms.u_blurSize, parseFloat(document.getElementById('blurSize').value));
+            gl.uniform1f(uniforms.u_blurDepth, parseFloat(document.getElementById('blurDepth').value));
+            gl.uniform1f(uniforms.u_depthImageBlurSize, parseFloat(document.getElementById('depthImageBlurSize').value));
+            
+            const borderColorHex = document.getElementById('borderColor').value;
+            const borderColorRgb = hexToRgb(borderColorHex);
+            gl.uniform3f(uniforms.u_borderColor, borderColorRgb.r, borderColorRgb.g, borderColorRgb.b);
+            gl.uniform1f(uniforms.u_borderSizeX, parseFloat(document.getElementById('borderSizeX').value));
+            gl.uniform1f(uniforms.u_borderSizeY, parseFloat(document.getElementById('borderSizeY').value));
+            
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+        
+        // 加载图像文件
+        function loadImage(file, textureKey, previewId) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    textures[textureKey] = createTexture(img);
+
+                    const preview = document.getElementById(previewId);
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    
+                    render();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 设置控件事件监听器
+        function setupControls() {
+            const controls = [
+                'threshold', 'protrude', 'lineNumber', 'obliquity', 'deviation',
+                'scaleX', 'scaleY', 'offsetX', 'offsetY',
+                'blurSize', 'blurDepth', 'depthImageBlurSize',
+                'borderSizeX', 'borderSizeY'
+            ];
+            
+            controls.forEach(id => {
+                const control = document.getElementById(id);
+                const valueDisplay = document.getElementById(id + 'Value');
+                
+                control.addEventListener('input', function() {
+                    let decimals = (this.step.toString().split('.')[1] || []).length;
+                    valueDisplay.textContent = parseFloat(this.value).toFixed(decimals > 2 ? 5 : 3);
+                    render();
+                });
+            });
+
+            // 颜色选择器监听器
+            document.getElementById('borderColor').addEventListener('input', render);
+            
+            // 文件输入监听器
+            document.getElementById('imageFile').addEventListener('change', function(e) {
+                if (e.target.files[0]) {
+                    loadImage(e.target.files[0], 'image', 'imagePreview');
+                }
+            });
+            
+            document.getElementById('depthFile').addEventListener('change', function(e) {
+                if (e.target.files[0]) {
+                    loadImage(e.target.files[0], 'depth', 'depthPreview');
+                }
+            });
+        }
+        
+        // 初始化应用
+        function init() {
+            if (!initWebGL()) return;
+            
+            if (!createProgram()) return;
+            
+            getUniforms();
+            setupGeometry();
+            setupControls();
+            
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            
+            // 创建默认纹理
+            const defaultTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, defaultTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+            
+            textures.image = defaultTexture;
+            textures.depth = defaultTexture;
+            textures.imageWidth = 1;
+            textures.imageHeight = 1;
+            
+            render();
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

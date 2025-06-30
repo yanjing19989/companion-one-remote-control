@@ -5,8 +5,8 @@ import time
 import threading
 
 app = Flask(__name__)
-BASE_UPLOAD_DIR = './uploads'
-THUMBNAIL_FOLDER = './thumbnails'
+BASE_UPLOAD_DIR = '/home/orangepi/web/up_pic/uploads'
+THUMBNAIL_FOLDER = '/home/orangepi/web/up_pic/thumbnails'
 # 默认使用基础目录
 CURRENT_UPLOAD_FOLDER = BASE_UPLOAD_DIR  
 lastpid = None
@@ -115,6 +115,17 @@ def set_folder():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/40')
+def page_a():
+    """渲染网页A page_a.html"""
+    return render_template('40.html')
+
+@app.route('/depth')
+def page_b():
+    """渲染网页B page_b.html"""
+    return render_template('depth.html')
+
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

@@ -19,6 +19,8 @@ A web-based application for uploading, managing, and displaying images on monito
 - Automatically switch images
 - Select a subfolders and only use images within that folder
 - Remote control through web interface
+- Depth map to 3D interlaced image conversion
+- Grid image (5*8) to 3D interlaced image conversion
 
 ### Requirements
 
@@ -97,6 +99,8 @@ A web-based application for uploading, managing, and displaying images on monito
 - 自动切换图片
 - 选定子文件夹并只使用该文件夹下的图片
 - 通过Web界面进行远程控制
+- 深度图转3D交织图
+- 宫格图（5*8）转3D交织图
 
 ### 系统要求
 
