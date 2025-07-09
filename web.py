@@ -197,12 +197,7 @@ def upload_file():
         filepath = os.path.join(CURRENT_UPLOAD_FOLDER, file.filename)
         file.save(filepath)
         create_thumbnail(filepath, file.filename)
-        
-        os.system(f'sudo fbi -T 1 -a -noverbose {filepath}')
-        global lastpid
-        if lastpid:
-            os.system(f'sudo kill -9 {lastpid}')
-        lastpid = os.popen('pgrep fbi | tail -n 1').read().strip()
+        show_image(filepath)
         return jsonify({'success': True, 'message': 'File uploaded and processed successfully'})
     return jsonify({'success': False, 'message': 'File upload failed'})
 
