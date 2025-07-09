@@ -132,7 +132,7 @@
                 </div>
             </div>
         </div>
-        
+        <button id="uploadCanvasBtn">上传渲染内容</button>
         <!-- 渲染画布 -->
         <div class="canvas-container">
             <canvas id="glCanvas" width="1440" height="2560"></canvas>
@@ -203,7 +203,44 @@
         </div>
     </div>
 
+    <script src="/static/jquery-3.5.1.min.js"></script>
     <script>
+        $(document).ready(function() {
+            $('#uploadCanvasBtn').on('click', function() {
+                // 1. 获取 Canvas 的 DOM 元素
+                var canvas = document.getElementById('glCanvas');
+                const selectedFile = $('#imageFile')[0].files[0];
+                const filename = selectedFile ? selectedFile.name : 'canvas-image.png';
+                // 2. 将 Canvas 转换为 Blob 对象 (这是一个异步操作)
+                canvas.toBlob(function(blob) {
+                    // 3. 创建一个 FormData 对象
+                    var formData = new FormData();
+
+                    // 4. 将 Blob 对象附加到 FormData 中
+                    formData.append('file', blob, filename);
+
+                    // 5. 使用 AJAX 发送 FormData
+                    $.ajax({
+                        url: '/upload',
+                        type: 'POST',
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        success: function(response) {
+                            if (response.success) {
+                                alert('渲染图上传并处理成功');
+                            } else {
+                                alert('渲染图上传失败: ' + response.message);
+                            }
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            alert('上传时发生网络错误: ' + textStatus);
+                        }
+                    });
+
+                }, 'image/png'); // 指定生成的图片格式
+            });
+        });
         // WebGL上下文和着色器程序
         let gl;
         let program;
@@ -327,7 +364,7 @@
         
         function initWebGL() {
             const canvas = document.getElementById('glCanvas');
-            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
             if (!gl) {
                 alert('您的浏览器不支持WebGL');
                 return false;
