@@ -341,21 +341,21 @@
                 z = (uv.x + 0.0 * subp + uv.y * slope) * pitch - center;
                 z = mod(z + ceil(abs(z)), 1.0);
                 z = (1.0 - invView) * z + invView * (1.0 - z);
-                if (u_reverseOrder) { z = 1.0 - z; } // *** NEW ***
+                if (!u_reverseOrder) { z = 1.0 - z; }
                 r = getColorFromQuilt(uv, z).r;
                 
                 // 绿色通道
                 z = (uv.x + 1.0 * subp + uv.y * slope) * pitch - center;
                 z = mod(z + ceil(abs(z)), 1.0);
                 z = (1.0 - invView) * z + invView * (1.0 - z);
-                if (u_reverseOrder) { z = 1.0 - z; } // *** NEW ***
+                if (!u_reverseOrder) { z = 1.0 - z; }
                 g = getColorFromQuilt(uv, z).g;
                 
                 // 蓝色通道
                 z = (uv.x + 2.0 * subp + uv.y * slope) * pitch - center;
                 z = mod(z + ceil(abs(z)), 1.0);
                 z = (1.0 - invView) * z + invView * (1.0 - z);
-                if (u_reverseOrder) { z = 1.0 - z; } // *** NEW ***
+                if (!u_reverseOrder) { z = 1.0 - z; }
                 b = getColorFromQuilt(uv, z).b;
                 
                 gl_FragColor = vec4(r, g, b, 1.0);
@@ -462,7 +462,7 @@
             
             // *** NEW: Set reverse order uniform ***
             const reverseOrder = document.getElementById('reverseOrder').checked;
-            gl.uniform1i(uniforms.u_reverseOrder, reverseOrder ? 0 : 1);
+            gl.uniform1i(uniforms.u_reverseOrder, reverseOrder ? 1 : 0);
 
             gl.uniform1f(uniforms.u_scaleX, parseFloat(document.getElementById('scaleX').value));
             gl.uniform1f(uniforms.u_scaleY, parseFloat(document.getElementById('scaleY').value));
