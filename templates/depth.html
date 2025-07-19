@@ -151,8 +151,8 @@
                     <input type="range" id="threshold" min="5" max="60" value="15" step="0.1">
                 </div>
                 <div class="control-item">
-                    <label for="protrude">突出程度: <span id="protrudeValue" class="value-display">0.5</span></label>
-                    <input type="range" id="protrude" min="-0.5" max="0.5" value="0.5" step="0.01">
+                    <label for="protrude">突出程度: <span id="protrudeValue" class="value-display">0</span></label>
+                    <input type="range" id="protrude" min="-0.5" max="0.5" value="0" step="0.01">
                 </div>
             </div>
             
@@ -396,7 +396,7 @@
                 float pitch = (screenWidth * 3.0) / u_lineNumber;
                 float slope = u_obliquity * (screenHeight / screenWidth);
                 float subp = 1.0 / (screenWidth * 3.0);
-                float center = (u_Deviation / screenWidth) * pitch;
+                float center = (u_Deviation * 3.0 / screenWidth) * pitch;
                 
                 float r, g, b;
                 
