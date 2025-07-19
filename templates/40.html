@@ -207,38 +207,52 @@
     <script>
         $(document).ready(function() {
             $('#uploadCanvasBtn').on('click', function() {
-                // 1. 获取 Canvas 的 DOM 元素
+                // 0. 获取 Canvas 的 DOM 元素
                 var canvas = document.getElementById('glCanvas');
                 const selectedFile = $('#imageFile')[0].files[0];
                 const filename = selectedFile ? selectedFile.name : 'canvas-image.png';
-                // 2. 将 Canvas 转换为 Blob 对象 (这是一个异步操作)
-                canvas.toBlob(function(blob) {
-                    // 3. 创建一个 FormData 对象
-                    var formData = new FormData();
 
-                    // 4. 将 Blob 对象附加到 FormData 中
-                    formData.append('file', blob, filename);
+                // 1. 将 WebGL 内容复制到 2D Canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // 用 toDataURL 获取 WebGL 渲染结果
+                tempCtx.drawImage(canvas, 0, 0);
 
-                    // 5. 使用 AJAX 发送 FormData
-                    $.ajax({
-                        url: '/upload',
-                        type: 'POST',
-                        data: formData,
-                        contentType: false,
-                        processData: false,
-                        success: function(response) {
-                            if (response.success) {
-                                alert('渲染图上传并处理成功');
-                            } else {
-                                alert('渲染图上传失败: ' + response.message);
-                            }
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            alert('上传时发生网络错误: ' + textStatus);
-                        }
+                // 2. 使用 CamanJS 调整饱和度
+                Caman(tempCanvas, function() {
+                    // 增加 30% 饱和度
+                    this.saturation(30).render(function() {
+                        tempCanvas.toBlob(function(blob) {
+                            // 3. 创建一个 FormData 对象
+                            var formData = new FormData();
+
+                            // 4. 将 Blob 对象附加到 FormData 中
+                            formData.append('file', blob, filename);
+
+                            // 5. 使用 AJAX 发送 FormData
+                            $.ajax({
+                                url: '/upload',
+                                type: 'POST',
+                                data: formData,
+                                contentType: false,
+                                processData: false,
+                                success: function(response) {
+                                    if (response.success) {
+                                        alert('渲染图上传并处理成功');
+                                    } else {
+                                        alert('渲染图上传失败: ' + response.message);
+                                    }
+                                },
+                                error: function(jqXHR, textStatus, errorThrown) {
+                                    alert('上传时发生网络错误: ' + textStatus);
+                                }
+                            });
+                        }, 'image/png');
                     });
-
-                }, 'image/png'); // 指定生成的图片格式
+                });
             });
         });
         // WebGL上下文和着色器程序
