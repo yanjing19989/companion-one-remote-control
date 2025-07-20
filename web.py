@@ -25,7 +25,10 @@ def create_thumbnail(image_path, filename):
     try:
         img = Image.open(image_path)
         img.thumbnail((256, 512))
-        thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(filename)[0]}.jpg")
+        thumb_path = image_path.replace(BASE_UPLOAD_DIR, THUMBNAIL_FOLDER, 1)
+        thumb_path = os.path.splitext(thumb_path)[0] + '.jpg'  # 确保缩略图是JPEG格式
+        if not os.path.exists(os.path.dirname(thumb_path)):
+            os.makedirs(os.path.dirname(thumb_path))
         img.convert("RGB").save(thumb_path, "JPEG", optimize=True)
         return thumb_path
     except Exception as e:
@@ -135,7 +138,7 @@ def uploaded_file(filename):
 
 @app.route('/thumbnails/<filename>')
 def thumbnail_file(filename):
-    return send_from_directory(THUMBNAIL_FOLDER, filename)
+    return send_from_directory(CURRENT_UPLOAD_FOLDER.replace(BASE_UPLOAD_DIR, THUMBNAIL_FOLDER, 1), filename)
 
 @app.route('/get_images')
 def get_images():
@@ -144,7 +147,7 @@ def get_images():
         file_path = os.path.join(CURRENT_UPLOAD_FOLDER, file)
         if os.path.isfile(file_path) and file.lower().endswith(('.jpg', '.png', '.jpeg', '.gif')):
             # 检查是否已有缩略图，没有则创建
-            thumb_path = os.path.join(THUMBNAIL_FOLDER, f"{os.path.splitext(file)[0]}.jpg")
+            thumb_path = os.path.join(CURRENT_UPLOAD_FOLDER.replace(BASE_UPLOAD_DIR, THUMBNAIL_FOLDER, 1), f"{os.path.splitext(file)[0]}.jpg")
             if not os.path.exists(thumb_path):
                 create_thumbnail(file_path, file)
             
