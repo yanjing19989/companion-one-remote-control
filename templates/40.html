@@ -210,7 +210,9 @@
                 // 0. 获取 Canvas 的 DOM 元素
                 var canvas = document.getElementById('glCanvas');
                 const selectedFile = $('#imageFile')[0].files[0];
-                const filename = selectedFile ? selectedFile.name : 'canvas-image.png';
+                const filename = selectedFile 
+                                ? selectedFile.name.replace(/\.[^/.]+$/, "") + '.png' 
+                                : 'canvas-image.png';
 
                 // 1. 将 WebGL 内容复制到 2D Canvas
                 const tempCanvas = document.createElement('canvas');
