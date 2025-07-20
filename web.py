@@ -64,7 +64,7 @@ def auto_play(interval=5):
         time.sleep(interval)  # 等待指定的间隔
         if auto_play_active:  # 再次检查，以便及时响应停止命令
             findex = (findex + 1) % listsize
-            show_image(findex)
+            show_image(filelist[findex])
 
 @app.route('/get_folders')
 def get_folders():
@@ -251,10 +251,10 @@ def start_auto_play():
         return jsonify({'success': False, 'message': '当前文件夹没有图片'})
     
     if listsize > 0:
-        show_image(findex)
+        show_image(filelist[findex])
     
     # interval = request.json.get('interval', 5)  # 从请求中获取间隔时间，默认5秒
-    interval = 30  # 默认30秒间隔
+    interval = 10  # 默认10秒间隔
     
     # 确保之前的轮播已经停止
     stop_auto_play()
