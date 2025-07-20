@@ -188,11 +188,12 @@ def upload_file():
     file = request.files['file']
     if file.filename == '':
         return redirect(request.url)
-    # 在BASE_UPLOAD_DIR目录下搜索，如果已经存在同名文件，则返回失败
-    for path, dirs, files in os.walk(BASE_UPLOAD_DIR):
-        print(path, dirs, files)
+    # 在BASE_UPLOAD_DIR目录下搜索，如果已经存在同名文件，则重命名
+    for path, dirs, files in os.walk(CURRENT_UPLOAD_FOLDER):
         if file.filename in files:
-            return jsonify({'success': False, 'message': '文件已存在，请重命名后再上传'})
+            # return jsonify({'success': False, 'message': '文件已存在，请重命名后再上传'})
+            while file.filename in files:
+                file.filename = f"{os.path.splitext(file.filename)[0]}_1{os.path.splitext(file.filename)[1]}"
     if file:
         filepath = os.path.join(CURRENT_UPLOAD_FOLDER, file.filename)
         file.save(filepath)
