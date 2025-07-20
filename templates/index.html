@@ -9,14 +9,14 @@
         .thumbnail-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 1%;
             margin-top: 20px;
         }
         .thumbnail {
             cursor: pointer;
-            width: 256px;
+            width: 24%;
             height: auto;
-            border: 2px solid transparent;
+            border: 1px solid transparent;
             transition: all 0.3s ease;
             object-fit: contain; /* 保持原始比例，不拉伸 */
             object-position: center; /* 居中显示 */
@@ -71,11 +71,10 @@
         </div>
         <form id="uploadForm" class="mt-4">
             <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
-                <input type="file" id="file" name="file" onchange="previewImage(event)">
-                <div style="margin-left: auto; margin-right: auto; width: 50%;">
-                    <select id="folderSelect" class="form-control" style="width: 60%;"></select>
-                </div>
-                <button type="button" class="btn btn-danger" id="shutdownpi">关机</button>
+                <input type="file" id="file" name="file" onchange="previewImage(event)" style="flex: 1;max-width: 45%;">
+                <select id="folderSelect" class="form-control" style="flex: 1;max-width: 45%;"></select>
+                <div style="flex: 1;max-width: 27%;"></div>
+                <button type="button" class="btn btn-danger" id="shutdownpi" style="width: auto;">关机</button>
             </div>
 
             <div class="form-group text-center"><button type="submit" class="btn btn-primary">上传</button></div>
