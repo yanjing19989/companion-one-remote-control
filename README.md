@@ -1,11 +1,11 @@
-# Companion-1 Remote Control
+# Companion One Remote Control
 
 [English](#english) | [中文](#chinese)
 
 <a name="english"></a>
 ## Image Display and Control System
 
-A web-based application for uploading, managing, and displaying images on monitors(such as Companion-1) connected to non-desktop version Linux, with remote control capabilities.
+A web-based application for uploading, managing, and displaying images on monitors(such as Companion One) connected to non-desktop version Linux, with remote control capabilities.
 
 ### Features
 
@@ -34,8 +34,8 @@ A web-based application for uploading, managing, and displaying images on monito
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/companion-1-remote-control.git
-   cd companion-1-remote-control
+   git clone https://github.com/yourusername/companion_one_remote_control.git
+   cd companion_one_remote_control
    ```
 
 2. Install required packages:
@@ -85,7 +85,7 @@ A web-based application for uploading, managing, and displaying images on monito
 <a name="chinese"></a>
 ## 图像显示和控制系统
 
-一个基于Web的应用程序，用于在非桌面版Linux连接的显示器上（如3D显示器Companion-1）执行上传、管理和显示图像，具有远程控制功能。
+一个基于Web的应用程序，用于在非桌面版Linux连接的显示器上（如3D显示器Companion One）执行上传、管理和显示图像，具有远程控制功能。
 
 ### 功能特点
 
@@ -114,8 +114,8 @@ A web-based application for uploading, managing, and displaying images on monito
 
 1. 克隆此仓库：
    ```
-   git clone https://github.com/yourusername/companion-1-remote-control.git
-   cd companion-1-remote-control
+   git clone https://github.com/yourusername/companion_one_remote_control.git
+   cd companion_one_remote_control
    ```
 
 2. 安装所需的包：
