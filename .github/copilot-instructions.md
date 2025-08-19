@@ -127,3 +127,20 @@ gl.uniform1f(uniforms.u_parameterName, parseFloat(document.getElementById('param
 - WebGL texture management for large images
 - Process cleanup for FBI instances to prevent resource leaks
 - Threading for autoplay functionality to maintain UI responsiveness
+
+## Project-Specific Notes
+
+### 3D Display Technology
+- Supports "Companion One" holographic displays with 5x8 quilt image format
+- Depth map conversion for creating 3D effects from 2D images
+- Real-time parameter adjustment for optimal 3D viewing experience
+
+### Linux System Integration
+- FBI (frame buffer imageviewer) for direct framebuffer output
+- Sudo privileges required for display control
+- Process management for background image display
+
+### Bilingual Support
+- Interface elements in both English and Chinese
+- Comments and user messages primarily in Chinese
+- Consider both languages when adding new user-facing features
