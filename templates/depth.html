@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全息3D图像查看器深度</title>
+    <script>
+        // 全息显示参数默认值配置
+        window.HOLOGRAPHY_DEFAULTS = {
+            // 全息显示参数
+            lineNumber: 19.61603,
+            obliquity: 0.101593,
+            deviation: 15.83299625,
+        };
+    </script>
     <style>
         body {
             margin: 0;
@@ -161,7 +170,7 @@
                 <h3>全息显示参数</h3>
                 <div class="control-item">
                     <label for="lineNumber">线数: <span id="lineNumberValue" class="value-display">19.61603</span></label>
-                    <input type="range" id="lineNumber" min="19" max="21" value="19.61603" step="0.00001">
+                    <input type="range" id="lineNumber" min="18" max="21" value="19.61603" step="0.00001">
                 </div>
                 <div class="control-item">
                     <label for="obliquity">倾斜度: <span id="obliquityValue" class="value-display">0.101593</span></label>
@@ -284,6 +293,25 @@
                 });
             });
         });
+        
+        // 将默认值应用到控件（供 init 调用）
+        function applyDefaults() {
+            const d = window.HOLOGRAPHY_DEFAULTS || {};
+
+            // 全息显示参数
+            if (d.lineNumber !== undefined) {
+                document.getElementById('lineNumber').value = d.lineNumber;
+                document.getElementById('lineNumberValue').textContent = d.lineNumber;
+            }
+            if (d.obliquity !== undefined) {
+                document.getElementById('obliquity').value = d.obliquity;
+                document.getElementById('obliquityValue').textContent = d.obliquity;
+            }
+            if (d.deviation !== undefined) {
+                document.getElementById('deviation').value = d.deviation;
+                document.getElementById('deviationValue').textContent = d.deviation;
+            }
+        }
         // WebGL上下文和着色器程序
         let gl;
         let program;
@@ -667,6 +695,9 @@
             setupGeometry();
             setupControls();
             
+            // 应用文件顶部的默认值配置
+            applyDefaults();
+
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             
             // 创建默认纹理
